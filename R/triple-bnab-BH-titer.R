@@ -1,9 +1,8 @@
 # BH titer: common factor applied to each individual Ab concentration that reduces
 # neutralization to 50%
 
-
 #' Theoretical calculation for experimental (pooled sera) neutralization titer
-#' under BH interaction for 3 antibodies
+#' under BH interaction for 3 antibodies. This function is vectorized for use over PK.
 #'
 #' @param pt50_1 ratio of concentration to IC50 for first Ab
 #' @param pt50_2 ratio of concentration to IC50 for second Ab
@@ -12,17 +11,16 @@
 #' @param min_titer_return smallest triple BH titer returned (default 0.01)
 #' @param NaN_as_NA arbitrarily large titers returned as missing
 #'
-#' This function is vectorized for use over PK
 #'
 #' @return
 #' @export
 #'
 #' @examples
-calc_3bnab_BHtiter = function(pt50_1, pt50_2, pt50_3, titer_target = 50,
+calc_3bnab_BHtiter = function(pt50_1, pt50_2, pt50_3, titer_target = 80,
                               min_titer_return = 1e-2,NaN_as_NA = F){
   stopifnot(titer_target > 0 & titer_target < 100)
 
-  # under .titer_as_pct, titer_target < 1 taken as is, > 1 converted
+  # titer_target < 1 taken as is, > 1 converted
   if(titer_target > 1) titer_target = titer_target / 100
 
   # if a row is all zeros, this is tracked then 0 is returned
@@ -89,7 +87,10 @@ calc_3bnab_BHtiter = function(pt50_1, pt50_2, pt50_3, titer_target = 50,
 #' @export
 #'
 #' @examples
-calc_2bnab_BHtiter = function(pt50_1, pt50_2, titer_target = 0.5, NaN_as_NA = F){
+calc_2bnab_BHtiter = function(pt50_1, pt50_2, titer_target = 80, NaN_as_NA = F){
+
+  # titer_target < 1 taken as is, > 1 converted
+  if(titer_target > 1) titer_target = titer_target / 100
 
   # managing numerical precision
   all_zeros = which(pt50_1 < sqrt(.Machine$double.eps) & pt50_2 < sqrt(.Machine$double.eps))
@@ -120,7 +121,7 @@ calc_2bnab_BHtiter = function(pt50_1, pt50_2, titer_target = 0.5, NaN_as_NA = F)
 
 }
 
-.BH_cubic_fun = function(x, pt50_1, pt50_2, pt50_3, titer_target = 0.5){
+.BH_cubic_fun = function(x, pt50_1, pt50_2, pt50_3, titer_target){
   termA = pt50_1 * pt50_2 * pt50_3
   termB =  pt50_1 * pt50_2 +  pt50_1 * pt50_3 +  pt50_2 * pt50_3
   termC =  pt50_1 + pt50_2 + pt50_3
