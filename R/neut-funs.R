@@ -28,7 +28,7 @@ convert_neut_iip = function(neut) pmin(-log10(1 - neut), -log10(.Machine$double.
 #' Calculate IIP given PT80 (for input into AMP PE curve)
 #' @param pt80 positive value, ratio of concentration of IC80
 #' @return scalar or numerical vector
-convert_pt80_iip = function(pt, hill = 1) {
+convert_pt80_iip = function(pt80, hill = 1) {
   pmin(-log10(1 - convert_pt80_neut(pt80, hill = hill)), -log10(.Machine$double.eps))
 
 
