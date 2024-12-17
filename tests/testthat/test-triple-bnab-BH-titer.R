@@ -1,9 +1,31 @@
-test_that("check calc_3bnab_BHtiter vectorization", {
+test_that("fixed results: calc_2bnab_BHtiter and calc_3bnab_BHtiter", {
+
+
+  test_2mab_data = structure(list(
+    a = c(400, 111, 11, 160, 582, 4245, 1335),
+    b = c(0, 4610, 1139, 774, 1788, 5667, 120)
+  ),
+  row.names = c(NA, 6L),
+  class = "data.frame")
+  expect_equal(
+    object = calc_2bnab_BHtiter(test_2mab_data$a, test_2mab_data$b),
+    expected = c(100,1280.179, 298.0105, 327.9148, 886.0958, 3986.585, 452.2978),
+    tolerance = 1e-2
+  )
+
+  test_3mab_data = structure(list(
+    a = c(0, 333, 83, 191, 1200, 18, 47),
+    b = c(0, 108, 15, 128, 167, 5534, 4636),
+    c = c(400, 47, 405, 972, 3501, 28, 1024)
+  ),
+  row.names = c(NA, 6L),
+  class = "data.frame")
 
   expect_equal(
-    object = calc_3bnab_BHtiter(c(10, 0), c(16, 1080), c(1080, 900)),
-    expected = c(calc_3bnab_BHtiter(10, 16, 1080), calc_3bnab_BHtiter(0, 1080, 900))
-  )
+    object = calc_3bnab_BHtiter(test_3mab_data$a, test_3mab_data$b, test_3mab_data$c),
+    expected = c(100, 202.3578, 184.8139, 509.6948, 1915.56, 1439.631, 2051.053),
+    tolerance = 1e-2
+    )
 
 })
 
@@ -56,7 +78,12 @@ test_that("benchmarking-check vectorization-2mab",{
 })
 
 
-test_that("benchmarking-check vectorization-3mab", {
+test_that("check vectorization-benchmarking-3mab", {
+
+  expect_equal(
+    object = calc_3bnab_BHtiter(c(10, 0), c(16, 1080), c(1080, 900)),
+    expected = c(calc_3bnab_BHtiter(10, 16, 1080), calc_3bnab_BHtiter(0, 1080, 900))
+  )
 
   test_size = if(interactive()) 100 else 5
   set.seed(10)
