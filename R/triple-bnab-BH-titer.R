@@ -16,21 +16,30 @@
 #' @export
 #'
 #' @examples
-calc_3bnab_BHtiter = function(pt50_1, pt50_2, pt50_3, titer_target = 80,
-                              min_titer_return = 1e-2,NaN_as_NA = F){
+calc_3bnab_BHtiter = function(pt50_1,
+                              pt50_2,
+                              pt50_3,
+                              titer_target = 80,
+                              min_titer_return = 1e-2,
+                              NaN_as_NA = F) {
   stopifnot(titer_target > 0 & titer_target < 100)
 
   # titer_target < 1 taken as is, > 1 converted
-  if(titer_target > 1) titer_target = titer_target / 100
+  if (titer_target > 1)
+    titer_target = titer_target / 100
 
   # if a row is all zeros, this is tracked then 0 is returned
-  all_zeros = which(pt50_1 < sqrt(.Machine$double.eps) &
-                      pt50_2 < sqrt(.Machine$double.eps) &
-                      pt50_3 < sqrt(.Machine$double.eps))
+  all_zeros = which(
+    pt50_1 < sqrt(.Machine$double.eps) &
+      pt50_2 < sqrt(.Machine$double.eps) &
+      pt50_3 < sqrt(.Machine$double.eps)
+  )
   # any zeros has a closed-form solution
-  any_zeros = which(pt50_1 < sqrt(.Machine$double.eps) |
-                      pt50_2 < sqrt(.Machine$double.eps) |
-                      pt50_3 < sqrt(.Machine$double.eps))
+  any_zeros = which(
+    pt50_1 < sqrt(.Machine$double.eps) |
+      pt50_2 < sqrt(.Machine$double.eps) |
+      pt50_3 < sqrt(.Machine$double.eps)
+  )
   # managing numerical precision
   pt50_1 = pmax(pt50_1, sqrt(.Machine$double.eps))
   pt50_2 = pmax(pt50_2, sqrt(.Machine$double.eps))
@@ -45,20 +54,21 @@ calc_3bnab_BHtiter = function(pt50_1, pt50_2, pt50_3, titer_target = 80,
   tmp_pt50_dat$PT = NA_real_
 
   # if there are any zeros, the information only exists in at most two of the input titers
-  if(length(any_zeros) > 0){
-
+  if (length(any_zeros) > 0) {
     tmp_pt50_dat$PT[any_zeros] = .calc_2bnab_BHPTxx(
       pt50_1 = tmp_pt50_dat$median_row[any_zeros],
       pt50_2 = tmp_pt50_dat$max_row[any_zeros],
       titer_target = titer_target,
-      NaN_as_NA = NaN_as_NA)
+      NaN_as_NA = NaN_as_NA
+    )
 
-    if(length(tmp_pt50_dat[-any_zeros,] > 0)){
+    if (length(tmp_pt50_dat[-any_zeros, ] > 0)) {
       tmp_pt50_dat$PT[-any_zeros] = .calc_3bnab_BHPTxx(
-        tmp_pt50_dat[-any_zeros,],
+        tmp_pt50_dat[-any_zeros, ],
         titer_target = titer_target,
         min_titer_return = min_titer_return,
-        NaN_as_NA = NaN_as_NA)
+        NaN_as_NA = NaN_as_NA
+      )
     }
 
   } else{
@@ -66,7 +76,8 @@ calc_3bnab_BHtiter = function(pt50_1, pt50_2, pt50_3, titer_target = 80,
       tmp_pt50_dat,
       titer_target = titer_target,
       min_titer_return = min_titer_return,
-      NaN_as_NA = NaN_as_NA)
+      NaN_as_NA = NaN_as_NA
+    )
   }
 
   tmp_pt50_dat$PT[all_zeros] = 0
