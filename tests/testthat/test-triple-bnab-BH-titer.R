@@ -49,6 +49,14 @@ test_that("calc_bnab_BHtiter when passed 1,2,3 active titers", {
 })
 
 test_that("benchmarking-check vectorization-2mab",{
+
+  expect_error(calc_2bnab_BHtiter(c(16, 1080), c(1080)),
+               "length(pt50_1) == length(pt50_2) is not TRUE",
+               fixed = T)
+  expect_error(calc_2bnab_BHtiter(c(16, 1080), c(1080,100,100)),
+               "length(pt50_1) == length(pt50_2) is not TRUE",
+               fixed = T)
+
   test_size = if(interactive()) 100 else 5
   set.seed(10)
   benchmark_data = data.frame(
@@ -80,6 +88,14 @@ test_that("benchmarking-check vectorization-2mab",{
 
 test_that("check vectorization-benchmarking-3mab", {
 
+  # R recycles, so this first case is insidious without error checking
+  expect_error(calc_3bnab_BHtiter(c(10, 0), c(16, 1080), c(1080)),
+               "length(pt50_1) == length(pt50_2) & length(pt50_2) == length(pt50_3) is not TRUE",
+               fixed = T)
+  expect_error(calc_3bnab_BHtiter(c(10, 0), c(16, 1080), c(1080,100,100)),
+               "length(pt50_1) == length(pt50_2) & length(pt50_2) == length(pt50_3) is not TRUE",
+               fixed = T)
+
   expect_equal(
     object = calc_3bnab_BHtiter(c(10, 0), c(16, 1080), c(1080, 900)),
     expected = c(calc_3bnab_BHtiter(10, 16, 1080), calc_3bnab_BHtiter(0, 1080, 900))
@@ -94,8 +110,9 @@ test_that("check vectorization-benchmarking-3mab", {
   )
 
 
+  # implicit_vector           10   0.104    1.000     0.101    0.002          0         0
   rbenchmark::benchmark(
-    implict_vector = { # this is currently fastest
+    implicit_vector = { # this is currently fastest
       implicit = with(benchmark_data,
                       calc_3bnab_BHtiter(a, b, c)
       )
@@ -116,4 +133,57 @@ test_that("check vectorization-benchmarking-3mab", {
   expect_equal(implicit, explicit_purrr)
 
 
+})
+
+test_that(".calc_3bnab_BHPTxx error handling", {
+
+  expected_check = calc_3bnab_BHtiter(10, 20, 300)
+  expected_min = calc_3bnab_BHtiter(0.001, 0.001, 0.001)
+  expected_na = calc_3bnab_BHtiter(NA, 0.001, 0.001)
+
+
+  # basic checks
+  expect_equal(.calc_3bnab_BHPTxx(data.frame(a = 10, b = 20, c = 300), .80, 0.01, T),
+               expected_check)
+
+  expect_equal(.calc_3bnab_BHPTxx(data.frame(a = 0, b = 0, c = 0), .80, 0.01, T),
+               0.01)
+  expect_equal(.calc_3bnab_BHPTxx(data.frame(a = 0, b = 0, c = 0), .80, 0.01, T),
+               expected_min)
+
+  # NA input
+  expect_equal(.calc_3bnab_BHPTxx(data.frame(a = NA, b = 0, c = 0), .80, 0.01, T),
+               NA_real_)
+  expect_equal(.calc_3bnab_BHPTxx(data.frame(a = NA, b = 0, c = 0), .80, 0.01, F),
+               NA_real_)
+
+  expect_equal(calc_3bnab_BHtiter(NA, 0.001, 0.001), NA_real_)
+  expect_equal(calc_3bnab_BHtiter(NA, 0.001, 0.001, NaN_as_NA = F), NA_real_)
+
+  # NaN
+  expect_equal(.calc_3bnab_BHPTxx(data.frame(a = NaN, b = 0, c = 0), .80, 0.01, T),
+               NA_real_)
+  expect_equal(calc_3bnab_BHtiter(NA, 0.001, 0.001), NA_real_)
+
+  expect_error(.calc_3bnab_BHPTxx(data.frame(a = NaN, b = 0, c = 0), .80, 0.01, F),
+               "BH PT50 NaN, input: NaN,0,0")
+  expect_error(calc_3bnab_BHtiter(NaN, 0.001, 0.001, NaN_as_NA = F),
+               "BH PT50 NaN, input: NaN,0.001,0.001")
+
+  # other input
+  expect_error(.calc_3bnab_BHPTxx(data.frame(a = "a", b = 0, c = 0), .80, 0.01, F),
+               "error with uniroot solver (titer input?): non-numeric argument to binary operator",
+               fixed = T)
+
+  expect_error(calc_3bnab_BHtiter("a", 0.001, 0.001),
+               "is.numeric(pt50_1) & is.numeric(pt50_2) & is.numeric(pt50_2) is not TRUE",
+               fixed = T)
+
+  expect_error(calc_3bnab_BHtiter(0.001, "b", 0.001),
+               "is.numeric(pt50_1) & is.numeric(pt50_2) & is.numeric(pt50_2) is not TRUE",
+               fixed = T)
+
+  expect_error(calc_3bnab_BHtiter(0.001, 0.001, "c"),
+               "is.numeric(pt50_1) & is.numeric(pt50_2) & is.numeric(pt50_2) is not TRUE",
+               fixed = T)
 })

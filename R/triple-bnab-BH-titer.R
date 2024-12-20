@@ -22,6 +22,11 @@ calc_3bnab_BHtiter = function(pt50_1,
                               titer_target = 80,
                               min_titer_return = 1e-2,
                               NaN_as_NA = F) {
+
+  stopifnot(is.numeric(pt50_1) & is.numeric(pt50_2) & is.numeric(pt50_3))
+  stopifnot(length(pt50_1) == length(pt50_2) & length(pt50_2) == length(pt50_3))
+
+  stopifnot(is.numeric(min_titer_return))
   stopifnot(titer_target > 0 & titer_target < 100)
 
   # titer_target < 1 taken as is, > 1 converted
@@ -100,6 +105,9 @@ calc_3bnab_BHtiter = function(pt50_1,
 #' @examples
 calc_2bnab_BHtiter = function(pt50_1, pt50_2, titer_target = 80, NaN_as_NA = F){
 
+  stopifnot(is.numeric(pt50_1) & is.numeric(pt50_2))
+  stopifnot(length(pt50_1) == length(pt50_2))
+
   # titer_target < 1 taken as is, > 1 converted
   if(titer_target > 1) titer_target = titer_target / 100
 
@@ -140,29 +148,56 @@ calc_2bnab_BHtiter = function(pt50_1, pt50_2, titer_target = 80, NaN_as_NA = F){
   x^3 * termA + x^2 * termB + x * termC - termD
 }
 
+#' returns a fixed value when root outside of the interval ( purrr's tryCatch)
+.safe_uniroot = purrr::safely(uniroot, otherwise = list(root = NA))
+
+.safe_uniroot_error = function(error, min_titer_return, pt50dat_row, NaN_as_NA){
+
+  # out of range of the interval
+  if(error == "f() values at end points not of opposite sign") return(1/min_titer_return)
+
+  # NaN or NA in titer input, fix error upstream
+  if(error == "f.lower = f(lower) is NA") {
+
+    # throws error for nan input with NaN_as_NA = F
+    if(any(purrr::map_lgl(pt50dat_row, is.nan)) & !NaN_as_NA) {
+      stop(paste("BH PT50 NaN, input:", paste(pt50dat_row[,c("a", "b", "c")],
+                                              collapse = ",")))
+    }
+
+    return(NA)
+  }
+
+  stop(paste("error with uniroot solver (titer input?):", error))
+
+}
+
 .calc_3bnab_BHPTxx = function(pt50dat, titer_target, min_titer_return, NaN_as_NA){
 
-  # returns a fixed value when root outside of the interval ( purrr's tryCatch)
-  safe_uniroot = purrr::safely(uniroot,
-                               otherwise = list(root = 1/min_titer_return))
+
 
   x = purrr::map_dbl(1:nrow(pt50dat), function(i){
 
-    res = safe_uniroot(.BH_cubic_fun, interval = c(0, 1/min_titer_return),
+    res = .safe_uniroot(.BH_cubic_fun, interval = c(0, 1/min_titer_return),
                   pt50_1 = pt50dat$a[i], pt50_2 = pt50dat$b[i], pt50_3 = pt50dat$c[i],
                   titer_target = titer_target, tol = .Machine$double.eps ^ 0.5)
+
+    # error handling, if solution outside of interval, returns min_titer_return
+    if(!is.null(res$error)) return(
+      .safe_uniroot_error(
+        error = res$error$message,
+        min_titer_return = min_titer_return,
+        pt50dat_row = pt50dat[i,],
+        NaN_as_NA = NaN_as_NA
+      ))
+
     res$result$root
 
   })
 
-
-  if(any(is.nan(x))) {
-    if(!NaN_as_NA) stop(paste("BH PT50 nAn, input:", pt50_1, pt50_2))
-    x <- NA_real_
-  }
   out = 1/x
 
-  # this handles some cluster issues with high values
+  # handles issues with high values that might affect server/cluster jobs
   infinites = which(is.infinite(out))
   if(length(infinites > 0)) out[infinites] = pmax(pt50_1, pt50_2, pt50_3)[infinites]
 
